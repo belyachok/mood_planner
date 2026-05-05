@@ -14,9 +14,8 @@ from stats_view import StatisticsView
 class MoodPlannerApp:
     """Главное приложение с современным дизайном"""
     
-    def __init__(self, db, recommendation_engine):
+    def __init__(self, db):
         self.db = db
-        self.recommendation_engine = recommendation_engine
         
         # Цветовая схема
         self.colors = {
@@ -82,126 +81,6 @@ class MoodPlannerApp:
         
         style.configure("TCombobox", fieldbackground=self.colors["card_bg"], 
                         foreground=self.colors["text"])
-    
-    def create_mood_tab(self):
-        """Вкладка многокомпонентной оценки состояния"""
-        self.mood_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.mood_frame, text="🎭 Моё состояние")
-        
-        # Заголовок
-        title = tk.Label(self.mood_frame, text="Оцените своё состояние", 
-                        font=("Segoe UI", 18, "bold"),
-                        bg=self.colors["bg"], fg=self.colors["text"])
-        title.pack(pady=20)
-        
-        # Шкала ЭНЕРГИИ
-        energy_frame = tk.Frame(self.mood_frame, bg=self.colors["bg"])
-        energy_frame.pack(pady=10, fill="x", padx=50)
-        
-        tk.Label(energy_frame, text="⚡ Уровень энергии", font=("Segoe UI", 12, "bold"),
-                bg=self.colors["bg"], fg=self.colors["text"]).pack()
-        tk.Label(energy_frame, text="(насколько вы бодры и готовы действовать)", 
-                font=("Segoe UI", 9), bg=self.colors["bg"], fg=self.colors["text_secondary"]).pack()
-        
-        self.energy_slider = tk.Scale(energy_frame, from_=1, to=10, orient="horizontal",
-                                    length=400, font=("Segoe UI", 10))
-        self.energy_slider.pack(pady=5)
-        self.energy_slider.set(5)
-        self.energy_value = tk.Label(energy_frame, text="5/10", font=("Segoe UI", 10),
-                                    bg=self.colors["bg"], fg=self.colors["accent_light"])
-        self.energy_value.pack()
-        
-        # Шкала СПОКОЙСТВИЯ
-        calm_frame = tk.Frame(self.mood_frame, bg=self.colors["bg"])
-        calm_frame.pack(pady=10, fill="x", padx=50)
-        
-        tk.Label(calm_frame, text="🧘 Уровень спокойствия", font=("Segoe UI", 12, "bold"),
-                bg=self.colors["bg"], fg=self.colors["text"]).pack()
-        tk.Label(calm_frame, text="(насколько вы расслаблены и свободны от тревоги)", 
-                font=("Segoe UI", 9), bg=self.colors["bg"], fg=self.colors["text_secondary"]).pack()
-        
-        self.calm_slider = tk.Scale(calm_frame, from_=1, to=10, orient="horizontal",
-                                    length=400, font=("Segoe UI", 10))
-        self.calm_slider.pack(pady=5)
-        self.calm_slider.set(5)
-        self.calm_value = tk.Label(calm_frame, text="5/10", font=("Segoe UI", 10),
-                                    bg=self.colors["bg"], fg=self.colors["accent_light"])
-        self.calm_value.pack()
-        
-        # Шкала МОТИВАЦИИ
-        motivation_frame = tk.Frame(self.mood_frame, bg=self.colors["bg"])
-        motivation_frame.pack(pady=10, fill="x", padx=50)
-        
-        tk.Label(motivation_frame, text="🎯 Уровень мотивации", font=("Segoe UI", 12, "bold"),
-                bg=self.colors["bg"], fg=self.colors["text"]).pack()
-        tk.Label(motivation_frame, text="(насколько вам хочется что-то делать)", 
-                font=("Segoe UI", 9), bg=self.colors["bg"], fg=self.colors["text_secondary"]).pack()
-        
-        self.motivation_slider = tk.Scale(motivation_frame, from_=1, to=10, orient="horizontal",
-                                        length=400, font=("Segoe UI", 10))
-        self.motivation_slider.pack(pady=5)
-        self.motivation_slider.set(5)
-        self.motivation_value = tk.Label(motivation_frame, text="5/10", font=("Segoe UI", 10),
-                                        bg=self.colors["bg"], fg=self.colors["accent_light"])
-        self.motivation_value.pack()
-        
-        def update_energy(val):
-            self.energy_value.config(text=f"{int(float(val))}/10")
-        
-        def update_calm(val):
-            self.calm_value.config(text=f"{int(float(val))}/10")
-        
-        def update_motivation(val):
-            self.motivation_value.config(text=f"{int(float(val))}/10")
-        
-        self.energy_slider.config(command=update_energy)
-        self.calm_slider.config(command=update_calm)
-        self.motivation_slider.config(command=update_motivation)
-        
-        # Кнопка получения рекомендаций
-        get_rec_btn = tk.Button(self.mood_frame, text="Получить рекомендации", 
-                                font=("Segoe UI", 14, "bold"), bg="#4CAF50", fg="white",
-                                command=self.get_recommendations)
-        get_rec_btn.pack(pady=20)
-        
-        # Область для вывода рекомендаций
-        self.recommendations_text = scrolledtext.ScrolledText(
-            self.mood_frame, width=80, height=18, font=("Segoe UI", 11), wrap=tk.WORD,
-            bg=self.colors["card_bg"], fg=self.colors["text"]
-        )
-        self.recommendations_text.pack(pady=10, padx=20, fill="both", expand=True)
-        
-        def update_mood_value(val):
-            self.mood_value_label.config(text=f"{int(float(val))}/10")
-        
-        self.mood_slider.config(command=update_mood_value)
-        
-        # Кнопка получения рекомендаций
-        get_rec_btn = tk.Button(center_frame, text="Получить рекомендации", 
-                                 font=("Segoe UI", 12, "bold"), 
-                                 bg=self.colors["success"], fg="white",
-                                 relief="flat", padx=30, pady=10,
-                                 command=self.get_recommendations)
-        get_rec_btn.pack(pady=20)
-        
-        # Область для вывода рекомендаций
-        rec_frame = tk.Frame(self.mood_frame, bg=self.colors["bg"])
-        rec_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        self.recommendations_text = scrolledtext.ScrolledText(
-            rec_frame, width=80, height=12, font=("Segoe UI", 11), 
-            wrap=tk.WORD, bg=self.colors["card_bg"], fg=self.colors["text"],
-            insertbackground=self.colors["text"], relief="flat",
-            borderwidth=1, highlightbackground=self.colors["border"]
-        )
-        self.recommendations_text.pack(fill="both", expand=True)
-        
-        # Кнопка для предложения расписания
-        suggest_btn = tk.Button(self.mood_frame, text="📅 Предложить расписание на день",
-                                 font=("Segoe UI", 10), bg=self.colors["warning"], fg="white",
-                                 relief="flat", padx=15, pady=5,
-                                 command=self.suggest_daily_schedule)
-        suggest_btn.pack(pady=10)
     
     def create_schedule_tab(self):
         """Вкладка расписания"""
@@ -382,135 +261,6 @@ class MoodPlannerApp:
         
         self.statistics = StatisticsView(self.stats_frame, self.db)
     
-    def get_recommendations(self):
-        """Получение рекомендаций с учётом трёх показателей и загрузки дня"""
-        energy = int(self.energy_slider.get())
-        calm = int(self.calm_slider.get())
-        motivation = int(self.motivation_slider.get())
-        
-        today_str = date.today().strftime("%Y-%m-%d")
-        schedule = self.db.get_schedule_for_date(today_str)
-        schedule_list = [dict(item) for item in schedule] if schedule else []
-        
-        # Анализ загрузки
-        free_slots = self.db.get_free_time_slots(today_str)
-        total_tasks = len(schedule_list)
-        load_percent = min(100, total_tasks * 15)
-        
-        # Определяем сезон
-        month = datetime.now().month
-        if month in [12, 1, 2]:
-            season = "зима"
-            temp = -10
-        elif month in [3, 4, 5]:
-            season = "весна"
-            temp = 5
-        elif month in [6, 7, 8]:
-            season = "лето"
-            temp = 22
-        else:
-            season = "осень"
-            temp = 8
-        
-        # Определяем профиль состояния
-        state_profile = self.recommendation_engine.get_state_profile(energy, calm, motivation)
-        
-        # Формируем выходной текст
-        output = f"{state_profile['profile_desc']}\n\n"
-        output += f"⚡ Энергия: {energy}/10  |  🧘 Спокойствие: {calm}/10  |  🎯 Мотивация: {motivation}/10\n\n"
-        output += "━" * 40 + "\n\n"
-        
-        output += f"📊 АНАЛИЗ ЗАГРУЗКИ ДНЯ\n"
-        output += f"   • Запланировано задач: {total_tasks}\n"
-        output += f"   • Загрузка дня: {load_percent}%\n"
-        output += f"   • Свободных окон: {len(free_slots)}\n"
-        output += f"   • Сезон: {season} (средняя температура {temp}°C)\n\n"
-        
-        output += "⏰ ВАШЕ РАСПИСАНИЕ\n"
-        if schedule_list:
-            for task in schedule_list:
-                status = "✓" if task.get('is_completed') else "○"
-                output += f"   {status} {task['start_time']}-{task['end_time']}: {task['task_title']}\n"
-        else:
-            output += "   Нет запланированных задач\n"
-        
-        output += "\n💡 РЕКОМЕНДАЦИИ ДЛЯ СВОБОДНОГО ВРЕМЕНИ\n"
-        
-        if free_slots:
-            for slot in free_slots[:4]:
-                duration = (int(slot['end'][:2])*60 + int(slot['end'][3:])) - (int(slot['start'][:2])*60 + int(slot['start'][3:]))
-                
-                if state_profile['profile'] == "идеальное":
-                    rec = "🔨 Возьмись за сложную задачу" if duration > 30 else "💪 Сделай короткое дело"
-                elif state_profile['profile'] == "тревожное":
-                    rec = "🧘 Сделай дыхательную гимнастику или прогулку"
-                elif state_profile['profile'] == "усталое":
-                    rec = "😴 Отдохни, не делай ничего"
-                elif state_profile['profile'] == "апатичное":
-                    rec = "🎬 Посмотри мотивирующий контент"
-                else:
-                    rec = "📋 Сделай запланированные дела"
-                
-                output += f"   • {slot['start']}-{slot['end']}: {rec}\n"
-        else:
-            output += "   Нет свободного времени\n"
-        
-        output += "\n🌿 СОВЕТЫ НА ДЕНЬ\n"
-        if state_profile['profile'] == "идеальное":
-            output += "   • Используй свою энергию для самых важных дел\n"
-            output += "   • Не забывай делать короткие перерывы\n"
-        elif state_profile['profile'] == "тревожное":
-            output += "   • Попробуй технику 'заземления': 5 вещей, которые ты видишь, 4 на ощупь, 3 слышишь, 2 чувствуешь запах, 1 на вкус\n"
-            output += "   • Сделай 10 глубоких вдохов\n"
-        elif state_profile['profile'] == "усталое":
-            output += "   • Лучшее, что можно сделать — отдохнуть\n"
-            output += "   • Не корите себя за низкую продуктивность\n"
-        elif state_profile['profile'] == "апатичное":
-            output += "   • Начни с самого маленького дела\n"
-            output += "   • Попробуй метод 'помидора': 25 минут работы, 5 отдыха\n"
-        elif state_profile['profile'] == "выгоревшее":
-            output += "   • ВОЗЬМИ ОТПУСК! Твоё состояние критическое\n"
-            output += "   • Обратись за поддержкой к близким или специалисту\n"
-        else:
-            output += "   • Продолжай в том же духе\n"
-        
-        if temp > 20:
-            output += "   • Пей больше воды, избегай солнца в пик\n"
-        elif temp < 0:
-            output += "   • Одевайся теплее, пей горячий чай\n"
-        
-        self.recommendations_text.delete(1.0, tk.END)
-        self.recommendations_text.insert(tk.END, output)
-    
-    def suggest_daily_schedule(self):
-        """Предложение расписания на день"""
-        mood_score = int(self.mood_slider.get())
-        suggestions = self.recommendation_engine.get_daily_plan_suggestion(mood_score)
-        
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Предлагаемое расписание на день")
-        dialog.geometry("450x550")
-        dialog.transient(self.root)
-        dialog.configure(bg=self.colors["bg"])
-        
-        text = tk.Text(dialog, wrap="word", font=("Segoe UI", 11),
-                        bg=self.colors["card_bg"], fg=self.colors["text"],
-                        relief="flat", padx=10, pady=10)
-        text.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        output = f"🌤 Рекомендуемое расписание для настроения {mood_score}/10\n"
-        output += "━" * 40 + "\n\n"
-        for slot in suggestions:
-            output += f"🕐 {slot['time']}  {slot['activity']}\n\n"
-        
-        text.insert(1.0, output)
-        text.config(state="disabled")
-        
-        tk.Button(dialog, text="Закрыть", command=dialog.destroy,
-                  bg=self.colors["accent"], fg="white",
-                  font=("Segoe UI", 10, "bold"),
-                  relief="flat", padx=15, pady=5).pack(pady=10)
-    
     def add_task(self):
         """Добавление задачи-шаблона"""
         title = self.task_title.get().strip()
@@ -525,15 +275,13 @@ class MoodPlannerApp:
         self.db.add_task(title, category, energy, duration)
         self.task_title.delete(0, tk.END)
         self.task_energy.set(5)
-        self.refresh_task_list()  # <-- проверьте, что этот метод вызывается
+        self.refresh_task_list()
         messagebox.showinfo("Успех", "Задача добавлена!")
     
     def refresh_task_list(self):
         """Обновление списка задач"""
         self.task_listbox.delete(0, tk.END)
         tasks = self.db.get_all_tasks()
-        
-        print(f"DEBUG: Получено задач из БД: {len(tasks)}")  # временно для отладки
         
         if not tasks:
             self.task_listbox.insert(tk.END, "📭 Нет задач. Добавьте свою первую задачу!")

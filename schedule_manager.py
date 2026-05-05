@@ -283,6 +283,14 @@ class ScheduleManager:
                                     bg=self.colors["card_bg"], fg=self.colors["text"])
         self.date_header.pack(side="left")
         
+                # Кнопка генерации расписания
+        generate_btn = tk.Button(schedule_card, text="🎲 Сгенерировать расписание на день",
+                                font=("Segoe UI", 10),
+                                bg=self.colors["accent"], fg="white",
+                                relief="flat", pady=8,
+                                command=self.generate_schedule)
+        generate_btn.pack(fill="x", padx=10, pady=5)
+
         # Кнопка добавления
         add_btn = tk.Button(header_frame, text="+ Добавить задачу", 
                             font=("Segoe UI", 10, "bold"),
@@ -307,6 +315,8 @@ class ScheduleManager:
             lambda e: self.tasks_canvas.configure(scrollregion=self.tasks_canvas.bbox("all"))
         )
         
+        
+
         # Привязываем изменение размера canvas к изменению размера окна
         def on_canvas_configure(event):
             self.tasks_canvas.itemconfig("tasks_window", width=event.width)
@@ -519,45 +529,7 @@ class ScheduleManager:
                 font=("Segoe UI", 10),
                 relief="flat", padx=15, pady=5).pack(pady=5)
 
-    def complete_task(self, item_id):
-        """Отметить задачу выполненной"""
-        dialog = tk.Toplevel(self.parent)
-        dialog.title("Оценка настроения")
-        dialog.geometry("320x250")
-        dialog.transient(self.parent)
-        dialog.grab_set()
-        
-        # Стилизация диалога
-        dialog.configure(bg=self.colors["bg"])
-        
-        tk.Label(dialog, text="Как настроение перед выполнением?", 
-                 font=("Segoe UI", 12),
-                 bg=self.colors["bg"], fg=self.colors["text"]).pack(pady=15)
-        
-        mood_var = tk.IntVar(value=5)
-        mood_slider = tk.Scale(dialog, from_=1, to=10, orient="horizontal",
-                                variable=mood_var, length=250,
-                                bg=self.colors["bg"], fg=self.colors["text"],
-                                troughcolor=self.colors["border"])
-        mood_slider.pack(pady=10)
-        
-        
-        def update_value(val):
-            mood_value.config(text=f"{int(float(val))}/10")
-        
-        mood_slider.config(command=update_value)
-        
-        def confirm():
-            self.db.complete_schedule_item(item_id, mood_var.get())
-            dialog.destroy()
-            self.load_schedule()
-            self.update_calendar()
-            messagebox.showinfo("Успех", "Задача отмечена как выполненная!")
-        
-        tk.Button(dialog, text="Подтвердить", command=confirm,
-                  bg=self.colors["success"], fg="white",
-                  font=("Segoe UI", 10, "bold"),
-                  relief="flat", padx=20, pady=5).pack(pady=15)
+    
 
     def delete_task(self, item_id):
         """Удалить задачу из расписания"""
@@ -954,3 +926,70 @@ class ScheduleManager:
             self.load_schedule()
             self.update_calendar()
             messagebox.showinfo("Успех", f"✅ Расписание на {self.selected_date.strftime('%d.%m.%Y')} создано с учётом сезона '{season}'!")
+
+    def generate_schedule(self):
+        """Генерация расписания на основе привычек и процентного соотношения"""
+        from task_generator import TaskGenerator
+        
+        target_date = self.selected_date.strftime("%Y-%m-%d")
+        generator = TaskGenerator(self.db)
+        
+        # Генерируем расписание
+        result = generator.generate_daily_schedule(target_date)
+        
+        if result['generated_tasks']:
+            # Показываем диалог с предложенными задачами
+            dialog = tk.Toplevel(self.parent)
+            dialog.title("Предлагаемое расписание")
+            dialog.geometry("500x400")
+            dialog.transient(self.parent)
+            dialog.grab_set()
+            dialog.configure(bg=self.colors["bg"])
+            
+            tk.Label(dialog, text="🎲 Сгенерированное расписание", 
+                    font=("Segoe UI", 14, "bold"),
+                    bg=self.colors["bg"], fg=self.colors["text"]).pack(pady=10)
+            
+            # Информация о распределении
+            info_frame = tk.Frame(dialog, bg=self.colors["bg"])
+            info_frame.pack(fill="x", padx=20, pady=5)
+            
+            for cat, minutes in result['required_time'].items():
+                hours = minutes / 60
+                tk.Label(info_frame, text=f"📌 {cat}: {hours:.1f} ч",
+                        bg=self.colors["bg"], fg=self.colors["accent_light"]).pack(side="left", padx=5)
+            
+            # Список задач
+            tasks_text = tk.Text(dialog, wrap="word", font=("Segoe UI", 10),
+                                bg=self.colors["card_bg"], fg=self.colors["text"],
+                                height=12)
+            tasks_text.pack(fill="both", expand=True, padx=20, pady=10)
+            
+            output = ""
+            for task in result['generated_tasks']:
+                output += f"🕐 {task['start']}-{task['end']} | {task['category']} | {task['title']}\n"
+            
+            tasks_text.insert(1.0, output)
+            tasks_text.config(state="disabled")
+            
+            def apply_schedule():
+                added = generator.apply_generated_schedule(target_date, result['generated_tasks'])
+                dialog.destroy()
+                self.load_schedule()
+                self.update_calendar()
+                messagebox.showinfo("Успех", f"Добавлено {added} задач в расписание на {target_date}")
+            
+            btn_frame = tk.Frame(dialog, bg=self.colors["bg"])
+            btn_frame.pack(pady=10)
+            
+            tk.Button(btn_frame, text="✅ Добавить в расписание", command=apply_schedule,
+                    bg=self.colors["success"], fg="white",
+                    font=("Segoe UI", 10, "bold"),
+                    relief="flat", padx=15, pady=5).pack(side="left", padx=5)
+            
+            tk.Button(btn_frame, text="❌ Отмена", command=dialog.destroy,
+                    bg=self.colors["danger"], fg="white",
+                    font=("Segoe UI", 10),
+                    relief="flat", padx=15, pady=5).pack(side="left", padx=5)
+        else:
+            messagebox.showinfo("Информация", result.get('message', 'Не удалось сгенерировать расписание'))

@@ -297,6 +297,10 @@
   ('tarfile',
    'C:\\Users\\belya\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\tarfile.py',
    'PYMODULE'),
+  ('task_generator',
+   'E:\\wizard\\программа для планирования распорядка '
+   'дня\\mood_planner\\task_generator.py',
+   'PYMODULE'),
   ('tempfile',
    'C:\\Users\\belya\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\tempfile.py',
    'PYMODULE'),

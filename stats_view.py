@@ -1,5 +1,5 @@
 """
-Модуль статистики и графиков
+Модуль статистики с процентами выполнения задач
 """
 
 import tkinter as tk
@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, date
 
 
 class StatisticsView:
-    """Класс для отображения статистики"""
+    """Класс для отображения статистики выполнения задач"""
     
     def __init__(self, parent, db):
         self.parent = parent
@@ -17,8 +17,6 @@ class StatisticsView:
         self.load_stats()
     
     def create_widgets(self):
-        """Создание виджетов статистики"""
-        
         # Выбор периода
         period_frame = ttk.LabelFrame(self.parent, text="Период")
         period_frame.pack(fill="x", padx=10, pady=5)
@@ -50,7 +48,6 @@ class StatisticsView:
         
         # Определяем даты
         end_date = date.today()
-        
         if period == "week":
             start_date = end_date - timedelta(days=7)
             period_name = "последние 7 дней"
@@ -64,53 +61,74 @@ class StatisticsView:
         start_str = start_date.strftime("%Y-%m-%d")
         end_str = end_date.strftime("%Y-%m-%d")
         
-        # Статистика выполнения задач
-        completion_stats = self.db.get_completion_stats(start_str, end_str)
+        # Получаем все задачи за период
+        all_tasks = self.db.get_schedule_for_range(start_str, end_str)
         
-        # Формируем текст
+        # Статистика
+        total_tasks = 0
+        completed_tasks = 0
+        pending_tasks = 0
+        
+        # Статистика по категориям
+        category_stats = {}
+        
+        for task in all_tasks:
+            total_tasks += 1
+            if task['is_completed']:
+                completed_tasks += 1
+            else:
+                pending_tasks += 1
+            
+            category = task.get('category', 'Другое')
+            if category not in category_stats:
+                category_stats[category] = {'total': 0, 'completed': 0}
+            category_stats[category]['total'] += 1
+            if task['is_completed']:
+                category_stats[category]['completed'] += 1
+        
+        # Формируем вывод
         output = "📊 СТАТИСТИКА ВЫПОЛНЕНИЯ ЗАДАЧ\n"
         output += "━" * 40 + "\n\n"
         output += f"📅 Период: {period_name}\n"
         output += f"📆 С {start_date.strftime('%d.%m.%Y')} по {end_date.strftime('%d.%m.%Y')}\n\n"
         
-        if completion_stats:
-            total_all = 0
-            completed_all = 0
-            for stat in completion_stats:
-                total_all += stat['total']
-                completed_all += stat['completed']
+        if total_tasks > 0:
+            completion_percent = (completed_tasks / total_tasks) * 100
+            pending_percent = (pending_tasks / total_tasks) * 100
             
-            if total_all > 0:
-                output += f"📋 Всего задач: {total_all}\n"
-                output += f"✅ Выполнено: {completed_all}\n"
-                output += f"📈 Общая продуктивность: {completed_all/total_all*100:.1f}%\n\n"
+            output += f"📋 Всего задач в период: {total_tasks}\n"
+            output += f"✅ Выполнено: {completed_tasks} ({completion_percent:.1f}%)\n"
+            output += f"⏳ Не выполнено: {pending_tasks} ({pending_percent:.1f}%)\n\n"
             
-            output += "📅 По дням:\n"
-            for stat in completion_stats[-7:]:
-                percent = stat['completed']/stat['total']*100 if stat['total'] > 0 else 0
-                # Визуальная полоса
-                bar_len = int(percent / 10)
-                bar = "█" * bar_len + "░" * (10 - bar_len)
-                output += f"   {stat['date']}: {bar} {percent:.0f}% ({stat['completed']}/{stat['total']})\n"
+            # Визуальная шкала выполнения
+            bar_len = int(completion_percent / 10)
+            bar = "█" * bar_len + "░" * (10 - bar_len)
+            output += f"   [{bar}] {completion_percent:.0f}%\n\n"
+            
+            # Статистика по категориям
+            output += "📂 ПО КАТЕГОРИЯМ:\n"
+            for cat, stats in category_stats.items():
+                if stats['total'] > 0:
+                    cat_percent = (stats['completed'] / stats['total']) * 100
+                    output += f"   • {cat}: {stats['completed']}/{stats['total']} ({cat_percent:.0f}%)\n"
+            
+            output += "\n💡 ВЫВОДЫ И СОВЕТЫ:\n"
+            
+            if completion_percent < 30:
+                output += "   • Продуктивность низкая. Попробуйте ставить меньше задач на день.\n"
+                output += "   • Начинайте с самых маленьких и простых дел.\n"
+            elif completion_percent < 60:
+                output += "   • Средняя продуктивность. Вы на правильном пути!\n"
+                output += "   • Старайтесь не отвлекаться во время работы.\n"
+            elif completion_percent < 85:
+                output += "   • Хорошая продуктивность! Продолжайте в том же духе.\n"
+            else:
+                output += "   • Отличная продуктивность! Не забывайте про отдых.\n"
+            
+            if pending_tasks > completed_tasks:
+                output += "   • У вас много невыполненных задач. Пересмотрите планы.\n"
         else:
-            output += "📭 Нет данных о выполненных задачах\n"
+            output += "📭 Нет данных о задачах за выбранный период\n"
             output += "   Добавьте задачи в расписание и отмечайте их выполнение!\n"
         
-        # Советы
-        output += "\n💡 СОВЕТЫ\n"
-        output += "━" * 40 + "\n"
-        
-        if completion_stats and total_all > 0:
-            if completed_all/total_all < 0.5:
-                output += "• Попробуйте планировать меньше задач на день\n"
-                output += "• Начинайте с самых маленьких и простых дел\n"
-            elif completed_all/total_all > 0.8:
-                output += "• Отличная продуктивность! Не забывайте про отдых\n"
-            else:
-                output += "• Хороший результат! Продолжайте в том же духе\n"
-        else:
-            output += "• Начните с добавления задач в расписание\n"
-            output += "• Планируйте 2-3 задачи на первый день\n"
-        
         self.stats_text.insert(1.0, output)
-        self.stats_text.config(state="disabled")

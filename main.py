@@ -11,8 +11,7 @@ from gui import MoodPlannerApp
 def main():
     """Запуск приложения"""
     db = Database(DB_NAME)
-    recommendation_engine = RecommendationEngine(db)
-    app = MoodPlannerApp(db, recommendation_engine)
+    app = MoodPlannerApp(db)
 
 
 if __name__ == "__main__":
