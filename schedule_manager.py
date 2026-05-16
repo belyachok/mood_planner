@@ -283,15 +283,7 @@ class ScheduleManager:
                                     bg=self.colors["card_bg"], fg=self.colors["text"])
         self.date_header.pack(side="left")
         
-                # Кнопка генерации расписания
-        generate_btn = tk.Button(schedule_card, text="🎲 Сгенерировать расписание на день",
-                                font=("Segoe UI", 10),
-                                bg=self.colors["accent"], fg="white",
-                                relief="flat", pady=8,
-                                command=self.generate_schedule)
-        generate_btn.pack(fill="x", padx=10, pady=5)
-
-        # Кнопка добавления
+        # Кнопка добавления задачи
         add_btn = tk.Button(header_frame, text="+ Добавить задачу", 
                             font=("Segoe UI", 10, "bold"),
                             bg=self.colors["accent"], fg="white",
@@ -315,6 +307,28 @@ class ScheduleManager:
             lambda e: self.tasks_canvas.configure(scrollregion=self.tasks_canvas.bbox("all"))
         )
         
+        # Привязываем изменение размера canvas к изменению размера окна
+        def on_canvas_configure(event):
+            self.tasks_canvas.itemconfig("tasks_window", width=event.width)
+        
+        self.tasks_canvas.bind("<Configure>", on_canvas_configure)
+        
+        self.tasks_canvas.create_window((0, 0), window=self.scrollable_tasks, anchor="nw", tags=("tasks_window",))
+        self.tasks_canvas.configure(yscrollcommand=scrollbar.set)
+        
+        self.tasks_canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        self.schedule_frame = self.scrollable_tasks
+        
+        # Кнопка генерации расписания (оранжевая, внизу)
+        generate_btn = tk.Button(schedule_card, text="🎲 Сгенерировать расписание на день",
+                                font=("Segoe UI", 11, "bold"),
+                                bg=self.colors["warning"], fg="white",
+                                relief="flat", pady=10,
+                                command=self.generate_schedule)
+        generate_btn.pack(fill="x", padx=10, pady=10)
+        
         
 
         # Привязываем изменение размера canvas к изменению размера окна
@@ -331,13 +345,6 @@ class ScheduleManager:
         
         self.schedule_frame = self.scrollable_tasks
         
-        # Кнопка быстрого предложения расписания
-        quick_suggest = tk.Button(schedule_card, text="✨ Предложить расписание на день",
-                                font=("Segoe UI", 10),
-                                bg=self.colors["warning"], fg="white",
-                                relief="flat", pady=8,
-                                command=self.suggest_schedule)
-        quick_suggest.pack(fill="x", padx=10, pady=10)
     
     def load_schedule(self):
         """Загрузка расписания на выбранную дату"""
