@@ -941,14 +941,12 @@ class ScheduleManager:
         target_date = self.selected_date.strftime("%Y-%m-%d")
         generator = TaskGenerator(self.db)
         
-        # Генерируем расписание
         result = generator.generate_daily_schedule(target_date)
         
         if result['generated_tasks']:
-            # Показываем диалог с предложенными задачами
             dialog = tk.Toplevel(self.parent)
             dialog.title("Предлагаемое расписание")
-            dialog.geometry("500x400")
+            dialog.geometry("600x520")
             dialog.transient(self.parent)
             dialog.grab_set()
             dialog.configure(bg=self.colors["bg"])
@@ -957,7 +955,7 @@ class ScheduleManager:
                     font=("Segoe UI", 14, "bold"),
                     bg=self.colors["bg"], fg=self.colors["text"]).pack(pady=10)
             
-            # Информация о распределении
+            # Информация о распределении времени
             info_frame = tk.Frame(dialog, bg=self.colors["bg"])
             info_frame.pack(fill="x", padx=20, pady=5)
             
@@ -965,6 +963,30 @@ class ScheduleManager:
                 hours = minutes / 60
                 tk.Label(info_frame, text=f"📌 {cat}: {hours:.1f} ч",
                         bg=self.colors["bg"], fg=self.colors["accent_light"]).pack(side="left", padx=5)
+            
+            # ===== ДОБАВИТЬ ЭТОТ БЛОК - ВЛИЯНИЕ ПРИВЫЧЕК =====
+            if result.get('habits_impact'):
+                habits_frame = tk.Frame(dialog, bg=self.colors["card_bg"])
+                habits_frame.pack(fill="x", padx=20, pady=10)
+                
+                tk.Label(habits_frame, text="📈 Влияние ваших привычек:", 
+                        font=("Segoe UI", 10, "bold"),
+                        bg=self.colors["card_bg"], fg=self.colors["warning"]).pack(anchor="w", padx=10, pady=5)
+                
+                for cat, impact in result['habits_impact'].items():
+                    bonus = impact['bonus_percent']
+                    tk.Label(habits_frame, 
+                            text=f"   • {cat}: +{bonus}% времени (благодаря серии привычек)",
+                            font=("Segoe UI", 9),
+                            bg=self.colors["card_bg"], fg=self.colors["text_secondary"]).pack(anchor="w", padx=10)
+            else:
+                # Если привычек нет или серия = 0
+                no_habits_frame = tk.Frame(dialog, bg=self.colors["card_bg"])
+                no_habits_frame.pack(fill="x", padx=20, pady=10)
+                tk.Label(no_habits_frame, text="📈 Добавьте привычки и отмечайте их выполнение,\nчтобы они влияли на расписание!", 
+                        font=("Segoe UI", 9),
+                        bg=self.colors["card_bg"], fg=self.colors["text_secondary"]).pack(pady=5)
+            # ================================================
             
             # Список задач
             tasks_text = tk.Text(dialog, wrap="word", font=("Segoe UI", 10),

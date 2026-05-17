@@ -62,11 +62,8 @@ class TaskGenerator:
         Получение привычек пользователя для персонализации
         Возвращает словарь с весами предпочтений
         """
-        # В будущем можно загружать из БД
-        # Пока используем настройки по умолчанию
         habits = self.db.get_all_habits() if hasattr(self.db, 'get_all_habits') else []
         
-        # Анализируем привычки пользователя
         preference_weights = {
             "Работа": 1.0,
             "Отдых": 1.0,
@@ -74,13 +71,22 @@ class TaskGenerator:
             "Саморазвитие": 1.0
         }
         
-        for habit in habits:
-            category = habit.get('category', '')
-            streak = habit.get('current_streak', 0)
-            # Чем длиннее серия, тем важнее привычка
-            if category in preference_weights:
-                preference_weights[category] += streak * 0.1
+        print("=== Анализ привычек ===")
         
+        for habit in habits:
+            # Преобразуем sqlite3.Row в словарь
+            habit_dict = dict(habit)
+            category = habit_dict.get('category', '')
+            streak = habit_dict.get('current_streak', 0)
+            
+            print(f"  Привычка: {habit_dict.get('name', '?')}, категория={category}, серия={streak}")
+            
+            if category in preference_weights:
+                old_weight = preference_weights[category]
+                preference_weights[category] += streak * 0.1
+                print(f"    -> {category}: вес {old_weight:.1f} -> {preference_weights[category]:.1f}")
+        
+        print(f"Итоговые веса: {preference_weights}")
         return preference_weights
     
     def get_existing_tasks_by_date(self, target_date):
@@ -221,20 +227,15 @@ class TaskGenerator:
         """
         Генерация полного расписания на день
         """
-        # Получаем существующие задачи
         existing_tasks = self.get_existing_tasks_by_date(target_date)
-        
-        # Получаем занятые слоты
         occupied_slots = self.get_occupied_time_slots(existing_tasks)
-        
-        # Получаем свободные слоты
         free_slots = self.get_free_slots(occupied_slots)
         total_free_minutes = sum(slot['duration'] for slot in free_slots)
         
         if total_free_minutes < 30:
             return {'generated_tasks': [], 'message': 'Недостаточно свободного времени'}
         
-        # Получаем предпочтения пользователя на основе привычек
+        # Получаем привычки и их влияние
         preference_weights = self.get_user_habits(user_preferences)
         
         # Анализируем уже запланированные категории
@@ -243,8 +244,12 @@ class TaskGenerator:
             cat = task.get('category', 'Другое')
             existing_categories[cat] = existing_categories.get(cat, 0) + 1
         
-        # Рассчитываем необходимое время по категориям
+        # Рассчитываем необходимое время по категориям (с учётом привычек)
         required_time = self.calculate_required_time_by_category(total_free_minutes, preference_weights)
+        
+        # Рассчитываем время БЕЗ учёта привычек для сравнения
+        default_weights = {"Работа": 1.0, "Отдых": 1.0, "Спорт": 1.0, "Саморазвитие": 1.0}
+        default_time = self.calculate_required_time_by_category(total_free_minutes, default_weights)
         
         # Генерируем задачи для каждой категории
         all_generated = []
@@ -260,12 +265,23 @@ class TaskGenerator:
                 )
                 all_generated.extend(tasks)
         
+        # Собираем информацию о влиянии привычек
+        habits_impact = {}
+        for cat in preference_weights:
+            if preference_weights[cat] > 1.0:
+                habits_impact[cat] = {
+                    'weight': preference_weights[cat],
+                    'bonus_percent': int((preference_weights[cat] - 1.0) * 100)
+                }
+        
         return {
             'generated_tasks': all_generated,
             'existing_tasks': existing_tasks,
             'total_free_minutes': total_free_minutes,
             'required_time': required_time,
-            'free_slots': free_slots
+            'free_slots': free_slots,
+            'habits_impact': habits_impact,  # ← добавляем информацию о привычках
+            'preference_weights': preference_weights
         }
     
     def apply_generated_schedule(self, target_date, generated_tasks):
